@@ -11,10 +11,11 @@ interface Props {
   resultCount: number;
 }
 
-interface DropdownState {
+interface OpenState {
   col: string;
   type: "categorical" | "numeric";
-  rect: DOMRect;
+  top: number;
+  left: number;
 }
 
 function useOutsideClick(ref: React.RefObject<HTMLElement | null>, cb: () => void) {
@@ -27,17 +28,19 @@ function useOutsideClick(ref: React.RefObject<HTMLElement | null>, cb: () => voi
   }, [ref, cb]);
 }
 
-// Categorical multi-select dropdown
+// Categorical multi-select dropdown — rendered with position:fixed to escape stacking contexts
 function CatDropdown({
   col,
   values,
   selected,
+  style,
   onClose,
   onChange,
 }: {
   col: string;
   values: string[];
   selected: string[];
+  style: React.CSSProperties;
   onClose: () => void;
   onChange: (vals: string[]) => void;
 }) {
@@ -61,8 +64,8 @@ function CatDropdown({
   return (
     <div
       ref={ref}
-      className="absolute z-50 mt-1 w-56 bg-surface border border-stroke rounded-xl shadow-lg shadow-black/10 overflow-hidden animate-slide-down"
-      style={{ top: "100%", left: 0 }}
+      className="fixed z-[9999] w-56 bg-surface border border-stroke rounded-xl shadow-lg shadow-black/20 overflow-hidden animate-slide-down"
+      style={style}
     >
       <div className="p-2 border-b border-stroke">
         <div className="flex items-center gap-1.5 bg-surface2 rounded-lg px-2 py-1">
@@ -110,12 +113,13 @@ function CatDropdown({
   );
 }
 
-// Numeric range dropdown
+// Numeric range dropdown — rendered with position:fixed
 function NumDropdown({
   col,
   globalMin,
   globalMax,
   current,
+  style,
   onClose,
   onChange,
 }: {
@@ -123,6 +127,7 @@ function NumDropdown({
   globalMin: number;
   globalMax: number;
   current: [number, number] | undefined;
+  style: React.CSSProperties;
   onClose: () => void;
   onChange: (range: [number, number] | null) => void;
 }) {
@@ -135,8 +140,8 @@ function NumDropdown({
   return (
     <div
       ref={ref}
-      className="absolute z-50 mt-1 w-64 bg-surface border border-stroke rounded-xl shadow-lg shadow-black/10 p-3 animate-slide-down"
-      style={{ top: "100%", left: 0 }}
+      className="fixed z-[9999] w-64 bg-surface border border-stroke rounded-xl shadow-lg shadow-black/20 p-3 animate-slide-down"
+      style={style}
     >
       <p className="text-xs font-semibold text-fg mb-3">{col}</p>
       <div className="space-y-2">
@@ -186,17 +191,37 @@ function NumDropdown({
 }
 
 export default function FilterBar({ dataset, filters, onChange, resultCount }: Props) {
-  const [openCol, setOpenCol] = useState<string | null>(null);
+  const [open, setOpen] = useState<OpenState | null>(null);
 
+  // Close dropdown on scroll or resize to keep position accurate
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(null);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+
+  // Exclude identifier columns from filters — they're row IDs, not filterable attributes
   const catCols = useMemo(
     () =>
       dataset.columns.filter(
-        (c) => c.type === "categorical" && c.uniqueCount >= 2 && c.uniqueCount <= 80
+        (c) =>
+          c.type === "categorical" &&
+          c.role !== "identifier" &&
+          c.uniqueCount >= 2 &&
+          c.uniqueCount <= 80
       ),
     [dataset.columns]
   );
   const numCols = useMemo(
-    () => dataset.columns.filter((c) => c.type === "numeric" && c.min !== undefined),
+    () =>
+      dataset.columns.filter(
+        (c) => c.type === "numeric" && c.role !== "identifier" && c.min !== undefined
+      ),
     [dataset.columns]
   );
 
@@ -220,6 +245,15 @@ export default function FilterBar({ dataset, filters, onChange, resultCount }: P
     onChange({ categorical: {}, numeric: {} });
   }
 
+  function openDropdown(
+    col: string,
+    type: "categorical" | "numeric",
+    btn: HTMLElement
+  ) {
+    const rect = btn.getBoundingClientRect();
+    setOpen({ col, type, top: rect.bottom + 4, left: rect.left });
+  }
+
   if (catCols.length === 0 && numCols.length === 0) return null;
 
   return (
@@ -237,91 +271,59 @@ export default function FilterBar({ dataset, filters, onChange, resultCount }: P
 
         <div className="h-4 w-px bg-stroke shrink-0" />
 
-        {/* Filter chips for active filters */}
+        {/* Filter chips */}
         <div className="flex items-center gap-1.5 flex-wrap flex-1">
           {catCols.map((col) => {
             const selected = filters.categorical[col.name] ?? [];
-            const isOpen = openCol === col.name;
+            const isOpen = open?.col === col.name && open.type === "categorical";
             return (
-              <div key={col.name} className="relative">
-                <button
-                  onClick={() => setOpenCol(isOpen ? null : col.name)}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-colors ${
-                    selected.length > 0
-                      ? "bg-accent/10 border-accent/40 text-accent"
-                      : "border-stroke text-muted hover:border-accent/40 hover:text-fg"
-                  }`}
-                >
-                  {col.name}
-                  {selected.length > 0 && (
-                    <span className="bg-accent text-accent-fg text-[10px] px-1 rounded-full">
-                      {selected.length}
-                    </span>
-                  )}
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-
-                {isOpen && (
-                  <CatDropdown
-                    col={col.name}
-                    values={catValues[col.name] ?? []}
-                    selected={selected}
-                    onClose={() => setOpenCol(null)}
-                    onChange={(vals) => {
-                      onChange({
-                        ...filters,
-                        categorical: { ...filters.categorical, [col.name]: vals },
-                      });
-                    }}
-                  />
+              <button
+                key={col.name}
+                onClick={(e) => {
+                  if (isOpen) setOpen(null);
+                  else openDropdown(col.name, "categorical", e.currentTarget);
+                }}
+                className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                  selected.length > 0
+                    ? "bg-accent/10 border-accent/40 text-accent"
+                    : "border-stroke text-muted hover:border-accent/40 hover:text-fg"
+                }`}
+              >
+                {col.name}
+                {selected.length > 0 && (
+                  <span className="bg-accent text-accent-fg text-[10px] px-1 rounded-full">
+                    {selected.length}
+                  </span>
                 )}
-              </div>
+                <ChevronDown className="w-3 h-3" />
+              </button>
             );
           })}
 
           {numCols.map((col) => {
             const current = filters.numeric[col.name];
-            const isOpen = openCol === col.name;
+            const isOpen = open?.col === col.name && open.type === "numeric";
             return (
-              <div key={col.name} className="relative">
-                <button
-                  onClick={() => setOpenCol(isOpen ? null : col.name)}
-                  className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-colors ${
-                    current
-                      ? "bg-accent/10 border-accent/40 text-accent"
-                      : "border-stroke text-muted hover:border-accent/40 hover:text-fg"
-                  }`}
-                >
-                  {col.name}
-                  {current && (
-                    <span className="text-[10px] font-mono">
-                      {current[0].toLocaleString()}–{current[1].toLocaleString()}
-                    </span>
-                  )}
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-
-                {isOpen && (
-                  <NumDropdown
-                    col={col.name}
-                    globalMin={col.min!}
-                    globalMax={col.max!}
-                    current={current}
-                    onClose={() => setOpenCol(null)}
-                    onChange={(range) => {
-                      if (range === null) {
-                        const { [col.name]: _, ...rest } = filters.numeric;
-                        onChange({ ...filters, numeric: rest });
-                      } else {
-                        onChange({
-                          ...filters,
-                          numeric: { ...filters.numeric, [col.name]: range },
-                        });
-                      }
-                    }}
-                  />
+              <button
+                key={col.name}
+                onClick={(e) => {
+                  if (isOpen) setOpen(null);
+                  else openDropdown(col.name, "numeric", e.currentTarget);
+                }}
+                className={`flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border transition-colors ${
+                  current
+                    ? "bg-accent/10 border-accent/40 text-accent"
+                    : "border-stroke text-muted hover:border-accent/40 hover:text-fg"
+                }`}
+              >
+                {col.name}
+                {current && (
+                  <span className="text-[10px] font-mono">
+                    {current[0].toLocaleString()}–{current[1].toLocaleString()}
+                  </span>
                 )}
-              </div>
+                <ChevronDown className="w-3 h-3" />
+              </button>
             );
           })}
         </div>
@@ -342,6 +344,48 @@ export default function FilterBar({ dataset, filters, onChange, resultCount }: P
           )}
         </div>
       </div>
+
+      {/* Fixed-position dropdowns — rendered here but visually escape stacking contexts */}
+      {open?.type === "categorical" && (
+        <CatDropdown
+          col={open.col}
+          values={catValues[open.col] ?? []}
+          selected={filters.categorical[open.col] ?? []}
+          style={{ top: open.top, left: open.left }}
+          onClose={() => setOpen(null)}
+          onChange={(vals) =>
+            onChange({
+              ...filters,
+              categorical: { ...filters.categorical, [open.col]: vals },
+            })
+          }
+        />
+      )}
+      {open?.type === "numeric" && (() => {
+        const col = numCols.find((c) => c.name === open.col);
+        if (!col) return null;
+        return (
+          <NumDropdown
+            col={open.col}
+            globalMin={col.min!}
+            globalMax={col.max!}
+            current={filters.numeric[open.col]}
+            style={{ top: open.top, left: open.left }}
+            onClose={() => setOpen(null)}
+            onChange={(range) => {
+              if (range === null) {
+                const { [open.col]: _, ...rest } = filters.numeric;
+                onChange({ ...filters, numeric: rest });
+              } else {
+                onChange({
+                  ...filters,
+                  numeric: { ...filters.numeric, [open.col]: range },
+                });
+              }
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

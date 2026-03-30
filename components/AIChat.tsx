@@ -9,6 +9,9 @@ import {
   Send,
   MessageSquare,
   ChevronDown,
+  ChevronRight,
+  Code2,
+  Lightbulb,
 } from "lucide-react";
 
 interface Props {
@@ -29,30 +32,85 @@ function TypingDots() {
   );
 }
 
-function MessageContent({ content }: { content: string }) {
-  const paragraphs = content.split(/\n\n+/);
+function SqlBlock({ label, query }: { label: string; query: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="space-y-1.5 text-xs leading-relaxed">
-      {paragraphs.map((para, i) => {
-        if (para.startsWith("💡")) {
-          return (
-            <div key={i} className="flex items-start gap-1.5 bg-accent/10 rounded-lg px-2 py-1.5 border border-accent/20">
-              <span className="text-accent shrink-0">💡</span>
-              <span className="text-fg">{para.slice(2).trim()}</span>
-            </div>
-          );
-        }
-        const numbered = para.match(/^(\d+)\.\s+([\s\S]*)$/);
-        if (numbered) {
-          return (
-            <div key={i} className="flex gap-2">
-              <span className="text-accent font-semibold shrink-0 w-4">{numbered[1]}.</span>
-              <span>{numbered[2]}</span>
-            </div>
-          );
-        }
-        return <p key={i}>{para}</p>;
-      })}
+    <div className="mt-1.5 border border-stroke rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-1.5 px-2.5 py-1.5 bg-surface2 text-xs text-muted hover:text-fg hover:bg-stroke/20 transition-colors text-left"
+      >
+        <Code2 className="w-3 h-3 shrink-0 text-accent" />
+        <span className="flex-1 font-medium truncate">{label}</span>
+        <ChevronRight className={`w-3 h-3 shrink-0 transition-transform ${open ? "rotate-90" : ""}`} />
+      </button>
+      {open && (
+        <pre className="text-[10px] leading-relaxed bg-surface px-3 py-2 overflow-x-auto font-mono text-fg/80 whitespace-pre-wrap">
+          {query}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function AssistantMessage({ content }: { content: string }) {
+  let parsed: { text?: string; insights?: string[]; sqlQueries?: { label: string; query: string }[]; chartSuggestions?: string[] } | null = null;
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    // Legacy plain-text message — display as-is
+  }
+
+  if (!parsed) {
+    return (
+      <div className="text-xs leading-relaxed text-fg">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 text-xs">
+      {/* Primary answer */}
+      {parsed.text && (
+        <p className="leading-relaxed text-fg">{parsed.text}</p>
+      )}
+
+      {/* Insights */}
+      {parsed.insights && parsed.insights.length > 0 && (
+        <ul className="space-y-1">
+          {parsed.insights.map((ins, i) => (
+            <li key={i} className="flex items-start gap-1.5">
+              <span className="text-accent font-bold shrink-0 mt-0.5">·</span>
+              <span className="text-fg/90">{ins}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Chart suggestions */}
+      {parsed.chartSuggestions && parsed.chartSuggestions.length > 0 && (
+        <div className="flex flex-wrap gap-1 pt-0.5">
+          {parsed.chartSuggestions.map((s, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 text-[10px] bg-accent/10 border border-accent/20 text-accent px-2 py-0.5 rounded-full"
+            >
+              <Lightbulb className="w-2.5 h-2.5" />
+              {s}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* SQL queries */}
+      {parsed.sqlQueries && parsed.sqlQueries.length > 0 && (
+        <div className="space-y-0.5">
+          {parsed.sqlQueries.map((q, i) => (
+            <SqlBlock key={i} label={q.label} query={q.query} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -103,17 +161,16 @@ export default function AIChat({ datasets }: Props) {
       if (!res.ok) throw new Error(data.error ?? "Analysis failed");
 
       const ai = data as AIAnalysis;
-      const lines: string[] = [];
-      if (ai.insights?.length) {
-        lines.push(...ai.insights);
-      }
-      if (ai.chartSuggestions?.length) {
-        lines.push(...ai.chartSuggestions.map((s) => `💡 ${s}`));
-      }
 
+      // Store the full structured response as JSON string so AssistantMessage can parse it
       const assistantMsg: ChatMessage = {
         role: "assistant",
-        content: lines.join("\n\n") || "No insights returned.",
+        content: JSON.stringify({
+          text: ai.text || (ai.insights?.length ? ai.insights[0] : "No insights returned."),
+          insights: ai.text ? ai.insights : ai.insights?.slice(1),
+          sqlQueries: ai.sqlQueries,
+          chartSuggestions: ai.chartSuggestions,
+        }),
         ts: Date.now(),
       };
       setHistory((h) => [...h, assistantMsg]);
@@ -155,7 +212,7 @@ export default function AIChat({ datasets }: Props) {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 w-[380px] max-h-[540px] bg-surface border border-stroke rounded-2xl shadow-2xl shadow-black/20 flex flex-col animate-slide-down">
+        <div className="fixed bottom-20 right-6 z-50 w-[400px] max-h-[580px] bg-surface border border-stroke rounded-2xl shadow-2xl shadow-black/20 flex flex-col animate-slide-down">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-stroke shrink-0 bg-surface2/30 rounded-t-2xl">
             <div className="flex items-center gap-2">
@@ -166,7 +223,7 @@ export default function AIChat({ datasets }: Props) {
                 <p className="text-sm font-semibold text-fg">AI Analyst</p>
                 <p className="text-xs text-muted flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse inline-block" />
-                  Powered by Gemini
+                  Powered by Gemini 1.5 Flash
                 </p>
               </div>
             </div>
@@ -193,7 +250,7 @@ export default function AIChat({ datasets }: Props) {
                   <MessageSquare className="w-6 h-6 text-accent opacity-70" />
                 </div>
                 <p className="text-xs font-medium text-fg mb-1">Ask anything about your data</p>
-                <p className="text-xs text-muted">Trends, outliers, correlations — just ask</p>
+                <p className="text-xs text-muted">Trends, outliers, correlations, SQL — just ask</p>
               </div>
             )}
 
@@ -208,16 +265,16 @@ export default function AIChat({ datasets }: Props) {
                   </div>
                 )}
                 <div
-                  className={`max-w-[80%] rounded-xl px-3 py-2 ${
+                  className={`max-w-[85%] rounded-xl px-3 py-2.5 ${
                     msg.role === "user"
-                      ? "bg-accent text-accent-fg rounded-br-sm text-xs leading-relaxed"
+                      ? "bg-accent text-accent-fg rounded-br-sm"
                       : "bg-surface2 text-fg rounded-bl-sm border border-stroke"
                   }`}
                 >
                   {msg.role === "user" ? (
                     <span className="text-xs">{msg.content}</span>
                   ) : (
-                    <MessageContent content={msg.content} />
+                    <AssistantMessage content={msg.content} />
                   )}
                 </div>
               </div>

@@ -1,4 +1,4 @@
-import { CleaningStep, ColumnMeta, ColumnType, Dataset } from "./types";
+import { CleaningStep, ColumnMeta, ColumnRole, ColumnType, Dataset } from "./types";
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
 
@@ -29,19 +29,12 @@ function looksLikeNumber(val: string): boolean {
 
 // ─── String sanitation ─────────────────────────────────────────────────────────
 
-/**
- * Strips non-printable control characters (except tab and newline, which are
- * acceptable in cell values) from a string.
- */
 function stripNonPrintable(s: string): string {
-  // Remove 0x00–0x08, 0x0B, 0x0C, 0x0E–0x1F, 0x7F
   return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 }
 
-/** Returns true if the string is predominantly binary/non-readable content. */
 function looksLikeBinary(s: string): boolean {
   if (s.length === 0) return false;
-  // Count printable ASCII characters (0x20–0x7E)
   let printable = 0;
   for (let i = 0; i < s.length; i++) {
     const c = s.charCodeAt(i);
@@ -60,15 +53,136 @@ function normalizeHeader(h: string): string {
     .replace(/[^a-z0-9_]/g, "");
 }
 
-/** Returns true if a header name looks like auto-generated garbage. */
 function isGarbageHeader(h: string): boolean {
   const clean = stripNonPrintable(h);
   return (
     clean.length === 0 ||
-    /^PK/.test(clean) ||            // ZIP signature leakage
+    /^PK/.test(clean) ||
     looksLikeBinary(clean) ||
-    /[\x00-\x1F]/.test(clean)       // raw control chars remaining
+    /[\x00-\x1F]/.test(clean)
   );
+}
+
+// ─── Column role detection ─────────────────────────────────────────────────────
+
+/**
+ * Determines the semantic role of a column — mirrors Power BI auto-classify logic.
+ *
+ * identifier → excluded from every KPI card and chart axis
+ * metric     → numeric measure (sales, profit, quantity) — KPIs + chart Y-axes
+ * dimension  → categorical grouping (region, category) — chart X-axes / pie slices
+ * date       → temporal column — line chart X-axis
+ */
+function detectColumnRole(
+  normalizedName: string,
+  type: ColumnType,
+  vals: unknown[],
+  uniqueCount: number,
+  rowCount: number
+): ColumnRole {
+  if (type === "date") return "date";
+
+  const n = normalizedName;
+
+  // ── 1. Exact row-number / generic ID names ────────────────────────────────
+  if (
+    /^(id|row_id|rowid|idx|index|row_no|row_num|row_number|no|num|number|seq|sequence|serial|serial_no|record_no|entry_no|line_no)$/.test(n)
+  ) {
+    return "identifier";
+  }
+
+  // ── 2. Suffix patterns → always an identifier ─────────────────────────────
+  //    customer_id, order_key, invoice_no, order_number, product_code, tx_ref …
+  if (/(_id|_key|_no|_num|_number|_code|_ref|_pk|_uuid|_guid|_hash|_token|_sku)$/.test(n)) {
+    return "identifier";
+  }
+
+  // ── 3. Prefix patterns ────────────────────────────────────────────────────
+  if (/^(id_|key_|fk_|pk_)/.test(n)) {
+    return "identifier";
+  }
+
+  // ── 4. Geographic / location identifiers ─────────────────────────────────
+  if (
+    /^(zip|postal|postcode|zip_code|zipcode|lat|latitude|lng|longitude|geohash|geo_hash|coordinates)$/.test(n) ||
+    /postal|postcode|zipcode|zip_code/.test(n)
+  ) {
+    return "identifier";
+  }
+
+  // ── 5. Contact / personal / legal identifiers ─────────────────────────────
+  if (
+    /^(phone|mobile|tel|fax|ssn|sin|nin|ein|tax_id|national_id|passport|license|license_no|dob|birth_date)$/.test(n) ||
+    /_(phone|mobile|tel|ssn|passport)$/.test(n)
+  ) {
+    return "identifier";
+  }
+
+  // ── 6. Product / inventory / catalogue codes ──────────────────────────────
+  if (
+    /^(sku|upc|ean|isbn|asin|barcode|part_no|part_number|item_code|item_no|product_code|style_no|catalog_no)$/.test(n)
+  ) {
+    return "identifier";
+  }
+
+  // ── 7. Data-driven detection for numeric columns ──────────────────────────
+  if (type === "numeric") {
+    const numVals = vals.filter((v) => typeof v === "number") as number[];
+
+    if (numVals.length >= 10) {
+      const allIntegers = numVals.every((v) => Number.isInteger(v));
+      const uniqueRatio  = uniqueCount / rowCount;
+
+      // Near-100 % unique integers with a large minimum → system-generated ID
+      if (allIntegers && uniqueRatio >= 0.97 && rowCount > 20) {
+        return "identifier";
+      }
+
+      // Sequential-ish integers starting near 0 or 1 → row numbers / counters
+      if (allIntegers && uniqueCount === numVals.length) {
+        const sorted   = [...numVals].sort((a, b) => a - b);
+        const firstVal = sorted[0];
+        const span     = sorted[sorted.length - 1] - firstVal;
+        // span ≤ rowCount means dense sequence (row numbers with possible gaps)
+        if (span <= rowCount && firstVal >= 0 && firstVal <= 100) {
+          return "identifier";
+        }
+      }
+
+      // 4–6 digit postal / geo codes with high uniqueness
+      if (allIntegers) {
+        const min = Math.min(...numVals);
+        const max = Math.max(...numVals);
+        if (min >= 1000 && max <= 999999 && uniqueRatio > 0.5 && rowCount > 20) {
+          if (/code|zip|postal|post|geo/.test(n) || uniqueRatio > 0.9) {
+            return "identifier";
+          }
+        }
+      }
+    }
+
+    // Year-like values (1900–2200) with very low spread — treat as dimension/label
+    if (numVals.length > 0) {
+      const allIntegers = numVals.every((v) => Number.isInteger(v));
+      if (allIntegers) {
+        const min = Math.min(...numVals);
+        const max = Math.max(...numVals);
+        if (min >= 1900 && max <= 2200) {
+          return "dimension"; // year columns group data, not aggregate it
+        }
+      }
+    }
+
+    return "metric";
+  }
+
+  // ── 8. High-cardinality strings → string IDs ─────────────────────────────
+  if (type === "categorical") {
+    if (uniqueCount / rowCount > 0.9 && rowCount > 30) return "identifier";
+    return "dimension";
+  }
+
+  return "dimension";
 }
 
 // ─── Column type detection ─────────────────────────────────────────────────────
@@ -86,10 +200,6 @@ function detectColumnType(values: string[]): ColumnType {
 
 // ─── Single-column delimiter detection ────────────────────────────────────────
 
-/**
- * If the dataset has exactly one column, attempt to split every value by a
- * common delimiter. The first row is treated as the new header row.
- */
 function detectAndSplit(
   rows: Record<string, unknown>[]
 ): { rows: Record<string, unknown>[]; detected: string | null } {
@@ -136,7 +246,7 @@ export function cleanDataset(
 
   let rows = rawRows.map((r) => ({ ...r }));
 
-  // ── Step 0: Sanitize all string cell values ──────────────────────────────────
+  // ── Step 0: Sanitize string cells ────────────────────────────────────────────
   let sanitizeCount = 0;
   rows = rows.map((row) => {
     const out: Record<string, unknown> = {};
@@ -160,12 +270,11 @@ export function cleanDataset(
     });
   }
 
-  // ── Step 1: Drop garbage/binary columns ─────────────────────────────────────
+  // ── Step 1: Drop garbage/binary columns ──────────────────────────────────────
   const allHeaders0 = Object.keys(rows[0] ?? {});
   const garbageColNames = allHeaders0.filter(isGarbageHeader);
-  // Also drop columns where >60% of values look binary
   const binaryDataCols = allHeaders0.filter((h) => {
-    if (garbageColNames.includes(h)) return false; // already caught
+    if (garbageColNames.includes(h)) return false;
     const vals = rows.slice(0, 50).map((r) => String(r[h] ?? ""));
     const binaryCount = vals.filter((v) => v.length > 0 && looksLikeBinary(v)).length;
     const nonEmpty = vals.filter((v) => v.length > 0).length;
@@ -183,19 +292,18 @@ export function cleanDataset(
     });
     cleaningLog.push({
       id: "drop_garbage",
-      description: `Dropped ${dropCols.size} column${dropCols.size > 1 ? "s" : ""} with unreadable/binary content`,
+      description: `Dropped ${dropCols.size} column${dropCols.size > 1 ? "s" : ""} with unreadable or binary content`,
       count: dropCols.size,
       icon: "remove",
     });
     log("Dropped garbage columns", [...dropCols]);
   }
 
-  // After dropping garbage cols, if nothing remains → error
   if (rows.length === 0 || Object.keys(rows[0] ?? {}).length === 0) {
     return makeEmptyDataset(fileName, "All columns were corrupted or unreadable. Please check the file.");
   }
 
-  // ── Step 2: Single-column delimiter detection ────────────────────────────────
+  // ── Step 2: Single-column delimiter detection ─────────────────────────────────
   const { rows: splitRows, detected } = detectAndSplit(rows);
   if (detected) {
     rows = splitRows;
@@ -208,16 +316,15 @@ export function cleanDataset(
     log("Delimiter split applied", { delimiter: detected, newColumns: Object.keys(rows[0] ?? {}).length });
   }
 
-  // ── Step 3: Validate headers ─────────────────────────────────────────────────
+  // ── Step 3: Validate headers ──────────────────────────────────────────────────
   const rawHeaders = Object.keys(rows[0] ?? {});
-
   if (rawHeaders.length === 0) {
     return makeEmptyDataset(fileName, "No valid columns found after cleaning");
   }
 
   log("Columns before normalisation", { count: rawHeaders.length, columns: rawHeaders.slice(0, 10) });
 
-  // ── Step 4: Normalize headers ────────────────────────────────────────────────
+  // ── Step 4: Normalize headers ─────────────────────────────────────────────────
   const headerMap: Record<string, string> = {};
   const usedNames = new Set<string>();
   let headerChanges = 0;
@@ -225,7 +332,6 @@ export function cleanDataset(
   rawHeaders.forEach((h, idx) => {
     let normalized = normalizeHeader(h);
     if (!normalized) normalized = `column_${idx + 1}`;
-    // Deduplicate
     let deduped = normalized;
     let suffix = 2;
     while (usedNames.has(deduped)) {
@@ -255,7 +361,7 @@ export function cleanDataset(
 
   const headers = Object.keys(rows[0] ?? {});
 
-  // ── Step 5: Trim whitespace ──────────────────────────────────────────────────
+  // ── Step 5: Trim whitespace ───────────────────────────────────────────────────
   let trimCount = 0;
   rows = rows.map((row) => {
     const trimmed: Record<string, unknown> = {};
@@ -278,7 +384,7 @@ export function cleanDataset(
     });
   }
 
-  // ── Step 6: Detect column types ──────────────────────────────────────────────
+  // ── Step 6: Detect column types ───────────────────────────────────────────────
   const columnValues: Record<string, string[]> = {};
   headers.forEach((h) => {
     columnValues[h] = rows.map((r) => String(r[h] ?? ""));
@@ -301,7 +407,7 @@ export function cleanDataset(
     });
   }
 
-  // ── Step 7: Convert numeric strings → numbers ────────────────────────────────
+  // ── Step 7: Convert numeric strings → numbers ─────────────────────────────────
   let numericConversions = 0;
   rows = rows.map((row) => {
     const converted: Record<string, unknown> = { ...row };
@@ -343,7 +449,7 @@ export function cleanDataset(
     });
   }
 
-  // ── Step 9: Drop columns that are entirely empty after cleaning ──────────────
+  // ── Step 9: Drop entirely-empty columns ──────────────────────────────────────
   const emptyAfterClean = headers.filter((h) =>
     rows.every((r) => r[h] === "" || r[h] === null || r[h] === undefined)
   );
@@ -364,6 +470,7 @@ export function cleanDataset(
   }
 
   const finalHeaders = Object.keys(rows[0] ?? {});
+
   log("Clean complete", {
     columnsIn: rawHeaders.length,
     columnsOut: finalHeaders.length,
@@ -371,7 +478,7 @@ export function cleanDataset(
     rowsOut: rows.length,
   });
 
-  // ── Build column metadata ────────────────────────────────────────────────────
+  // ── Build column metadata (with role detection) ───────────────────────────────
   const columns: ColumnMeta[] = finalHeaders.map((h) => {
     const vals = rows.map((r) => r[h]);
     const nullCount = vals.filter(
@@ -380,16 +487,20 @@ export function cleanDataset(
     const strVals = vals.map((v) => String(v ?? ""));
     const uniqueCount = new Set(strVals).size;
     const sample = [...new Set(strVals.filter((v) => v !== ""))].slice(0, 3);
+    const type: ColumnType = columnTypes[h] ?? "categorical";
+
+    const role: ColumnRole = detectColumnRole(h, type, vals, uniqueCount, rows.length);
 
     const colMeta: ColumnMeta = {
       name: h,
-      type: columnTypes[h] ?? "categorical",
+      type,
+      role,
       nullCount,
       uniqueCount,
       sample,
     };
 
-    if ((columnTypes[h] ?? "categorical") === "numeric") {
+    if (type === "numeric") {
       const nums = vals.filter((v) => typeof v === "number") as number[];
       if (nums.length > 0) {
         colMeta.min = Math.min(...nums);
@@ -399,6 +510,26 @@ export function cleanDataset(
 
     return colMeta;
   });
+
+  // ── Log role summary ──────────────────────────────────────────────────────────
+  const metrics = columns.filter((c) => c.role === "metric");
+  const identifiers = columns.filter((c) => c.role === "identifier");
+  const dimensions = columns.filter((c) => c.role === "dimension");
+
+  log("Column roles", {
+    metrics: metrics.map((c) => c.name),
+    dimensions: dimensions.map((c) => c.name),
+    identifiers: identifiers.map((c) => c.name),
+  });
+
+  if (identifiers.length > 0) {
+    cleaningLog.push({
+      id: "roles",
+      description: `Identified ${identifiers.length} identifier column${identifiers.length > 1 ? "s" : ""} (${identifiers.map((c) => c.name).join(", ")}) — excluded from charts and KPIs`,
+      count: identifiers.length,
+      icon: "header",
+    });
+  }
 
   return {
     id: crypto.randomUUID(),

@@ -31,17 +31,26 @@ export async function POST(request: Request) {
 
   const schemas = datasets.map(buildSchema).join("\n\n");
 
-  const systemInstruction = `You are an expert data analyst and BI assistant.
-Given a dataset schema, return ONLY a valid JSON object with these exact keys:
-- "insights": array of 3-5 specific, actionable business insights (strings)
-- "sqlQueries": array of 2-3 objects each with "label" (short title) and "query" (valid SQL using the table name from the schema)
-- "chartSuggestions": array of 2-3 strings describing useful visualizations
+  const systemInstruction = `You are InsightForge AI — an expert data analyst embedded in a BI dashboard.
 
-No markdown code fences. No text outside the JSON object.`;
+The user has uploaded a dataset. You have its schema (column names, types, roles, min/max, sample values).
+Answer the user's question directly, conversationally, and accurately. Be specific: use actual column names and real numbers from the schema when possible.
+
+Return ONLY a valid JSON object with these exact keys:
+- "text": A clear 2-4 sentence answer in plain English. Be direct, specific, and helpful. No markdown. No bullet points inside this field.
+- "insights": array of 2-4 short, specific insights as strings (each ≤ 15 words). Empty array [] if the question is very specific and already answered in "text".
+- "sqlQueries": array of 1-3 objects with "label" (≤ 5 words) and "query" (valid SQL, use the exact table name from the schema). Include only queries that directly answer the question.
+- "chartSuggestions": array of 0-2 strings suggesting visualizations. Empty array [] if not relevant.
+
+Rules:
+- "text" is required and must always contain a useful answer
+- Use the actual column names from the schema in your answer
+- For questions about totals/averages/counts, calculate or estimate from schema metadata when possible
+- No markdown code fences. No text outside the JSON object.`;
 
   const userPrompt = question
-    ? `Schema:\n${schemas}\n\nUser question: ${question}`
-    : `Schema:\n${schemas}\n\nProvide a comprehensive analysis.`;
+    ? `Dataset schema:\n${schemas}\n\nUser question: ${question}\n\nAnswer the question directly and helpfully.`
+    : `Dataset schema:\n${schemas}\n\nProvide an initial analysis: what are the most interesting things about this data?`;
 
   // Build Gemini conversation history (exclude rows/rawRows for security + size)
   const historyContents = history.slice(-8).map((m) => ({
@@ -95,6 +104,7 @@ No markdown code fences. No text outside the JSON object.`;
 
     // Validate and sanitise shape — never trust AI output blindly
     const safe = {
+      text: typeof parsed.text === "string" ? parsed.text.slice(0, 1000) : "",
       insights: (Array.isArray(parsed.insights) ? parsed.insights : [])
         .filter((x): x is string => typeof x === "string")
         .slice(0, 8),

@@ -32,6 +32,7 @@ import {
   Legend,
   type PieLabelRenderProps,
 } from "recharts";
+import { humanize } from "@/lib/visualizer";
 
 const COLORS = [
   "#6366f1","#22d3ee","#f59e0b","#10b981","#ef4444","#a855f7","#f97316","#14b8a6",
@@ -115,11 +116,26 @@ function ChartBody({ chart, type }: { chart: ChartSpec; type: ChartType }) {
   if (type === "line" && chart.xKey && chart.yKey) {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chart.data}>
+        <LineChart data={chart.data} margin={{ top: 8, right: 16, left: 8, bottom: 28 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--stroke)" />
-          <XAxis dataKey={chart.xKey} tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={fmt} interval="preserveStartEnd" />
-          <YAxis tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={fmt} />
-          <Tooltip formatter={(v) => fmt(v)} contentStyle={tooltipStyle} />
+          <XAxis
+            dataKey={chart.xKey}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tickFormatter={fmt}
+            interval="preserveStartEnd"
+            label={{ value: humanize(chart.xKey), position: "insideBottom", offset: -16, fontSize: 10, fill: "var(--muted)" }}
+          />
+          <YAxis
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tickFormatter={fmt}
+            label={{ value: humanize(chart.yKey), angle: -90, position: "insideLeft", offset: 8, fontSize: 10, fill: "var(--muted)" }}
+            width={52}
+          />
+          <Tooltip
+            formatter={(v, name) => [fmt(v), humanize(String(name))]}
+            labelFormatter={(l) => String(l)}
+            contentStyle={tooltipStyle}
+          />
           <Line type="monotone" dataKey={chart.yKey} stroke={COLORS[0]} dot={false} strokeWidth={2} />
         </LineChart>
       </ResponsiveContainer>
@@ -128,11 +144,20 @@ function ChartBody({ chart, type }: { chart: ChartSpec; type: ChartType }) {
   if (type === "bar" && chart.xKey && chart.yKey) {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={chart.data} layout="vertical">
+        <BarChart data={chart.data} layout="vertical" margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--stroke)" />
-          <XAxis type="number" tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={fmt} />
+          <XAxis
+            type="number"
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tickFormatter={fmt}
+            label={{ value: humanize(chart.yKey), position: "insideBottom", offset: -4, fontSize: 10, fill: "var(--muted)" }}
+          />
           <YAxis type="category" dataKey={chart.xKey} tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={fmt} width={90} />
-          <Tooltip formatter={(v) => fmt(v)} contentStyle={tooltipStyle} />
+          <Tooltip
+            formatter={(v, name) => [fmt(v), humanize(String(name))]}
+            labelFormatter={(l) => humanize(String(l))}
+            contentStyle={tooltipStyle}
+          />
           <Bar dataKey={chart.yKey} fill={COLORS[1]} radius={[0, 4, 4, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -161,10 +186,23 @@ function ChartBody({ chart, type }: { chart: ChartSpec; type: ChartType }) {
   if (type === "scatter" && chart.xKey && chart.yKey) {
     return (
       <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart>
+        <ScatterChart margin={{ top: 8, right: 16, left: 8, bottom: 28 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--stroke)" />
-          <XAxis dataKey={chart.xKey} name={chart.xKey} tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={fmt} />
-          <YAxis dataKey={chart.yKey} name={chart.yKey} tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={fmt} />
+          <XAxis
+            dataKey={chart.xKey}
+            name={humanize(chart.xKey)}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tickFormatter={fmt}
+            label={{ value: humanize(chart.xKey), position: "insideBottom", offset: -16, fontSize: 10, fill: "var(--muted)" }}
+          />
+          <YAxis
+            dataKey={chart.yKey}
+            name={humanize(chart.yKey)}
+            tick={{ fontSize: 10, fill: "var(--muted)" }}
+            tickFormatter={fmt}
+            label={{ value: humanize(chart.yKey), angle: -90, position: "insideLeft", offset: 8, fontSize: 10, fill: "var(--muted)" }}
+            width={52}
+          />
           <Tooltip cursor={{ strokeDasharray: "3 3" }} contentStyle={tooltipStyle} />
           <ScatterPlot data={chart.data} fill={COLORS[4]} fillOpacity={0.65} />
         </ScatterChart>

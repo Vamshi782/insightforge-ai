@@ -1,3 +1,6 @@
+/* Switzer heading font from Fontshare */
+@import url("https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700,800&display=swap");
+
 @import "tailwindcss";
 @import "react-grid-layout/css/styles.css";
 @import "react-resizable/css/styles.css";
@@ -17,6 +20,7 @@
   --accent-fg: #ffffff;
   --danger: #ef4444;
   --success: #10b981;
+  --font-switzer: "Switzer", system-ui, sans-serif;
 }
 
 .dark {
@@ -56,6 +60,11 @@ body {
   transition: background 0.2s ease, color 0.2s ease;
 }
 
+/* Switzer for hero headings */
+.font-switzer {
+  font-family: var(--font-switzer);
+}
+
 /* ── Skeleton shimmer ── */
 @keyframes shimmer {
   0%   { background-position: -600px 0; }
@@ -93,44 +102,33 @@ body {
 .animate-scale-in { animation: scaleIn 0.15s ease forwards; }
 
 /* ── React Grid Layout overrides ── */
-.react-grid-layout {
-  position: relative;
-}
+.react-grid-layout { position: relative; }
 .react-grid-item {
   transition: none;
   box-sizing: border-box;
 }
 .react-grid-item.react-draggable-dragging {
   transition: none !important;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.18);
   z-index: 100;
   border-radius: 12px;
   opacity: 0.92;
 }
-.react-grid-item.resizing {
-  opacity: 0.85;
-  z-index: 100;
-}
+.react-grid-item.resizing { opacity: 0.85; z-index: 100; }
 .react-grid-item > .react-resizable-handle {
   position: absolute;
-  width: 14px;
-  height: 14px;
-  bottom: 4px;
-  right: 4px;
+  width: 14px; height: 14px;
+  bottom: 4px; right: 4px;
   cursor: se-resize;
   opacity: 0;
   transition: opacity 0.15s;
 }
-.react-grid-item:hover > .react-resizable-handle {
-  opacity: 1;
-}
+.react-grid-item:hover > .react-resizable-handle { opacity: 1; }
 .react-resizable-handle::after {
   content: "";
   position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 6px;
-  height: 6px;
+  right: 2px; bottom: 2px;
+  width: 6px; height: 6px;
   border-right: 2px solid var(--muted);
   border-bottom: 2px solid var(--muted);
   border-radius: 1px;
@@ -165,6 +163,15 @@ body {
   color: transparent;
 }
 
+/* Orange gradient text for hero */
+.gradient-text-orange {
+  background: linear-gradient(135deg, #FF3300 0%, #EE7926 60%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
 /* ── Hero glow pulse ── */
 @keyframes glowPulse {
   0%, 100% { opacity: 0.6; transform: scale(1); }
@@ -178,3 +185,49 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-float-up { animation: floatUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* ── Orange CTA button glow ── */
+.btn-primary-glow {
+  position: relative;
+  background: linear-gradient(135deg, #FF3300, #EE7926);
+  border: 1.5px solid rgba(255,255,255,0.2);
+  color: #fff;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-primary-glow:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 32px rgba(238, 121, 38, 0.5);
+}
+.btn-primary-glow:active { transform: scale(0.97); }
+.btn-primary-glow .glow-layer {
+  position: absolute;
+  inset: -4px;
+  background: #c2410c;
+  filter: blur(18px);
+  opacity: 0.2;
+  z-index: -1;
+  border-radius: inherit;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.btn-primary-glow:hover .glow-layer { opacity: 0.55; }
+
+/* ── Secondary button ── */
+.btn-secondary {
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0,0,0,0.06);
+  color: #0f172a;
+  transition: transform 0.2s ease, background 0.15s ease;
+}
+.btn-secondary:hover {
+  transform: scale(1.05);
+  background: #fff;
+}
+.btn-secondary:active { transform: scale(0.97); }
+
+/* ── Section separator ── */
+.section-title {
+  font-family: var(--font-switzer);
+  letter-spacing: -0.03em;
+}

@@ -89,6 +89,12 @@ export default function VirtualTable({ dataset, rows }: Props) {
     [sourceRows]
   );
 
+  const colRoleMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    dataset.columns.forEach((c) => { m[c.name] = c.role; });
+    return m;
+  }, [dataset.columns]);
+
   const colWidths = useMemo(() => {
     return headers.map((h) => {
       const headerLen = h.length;
@@ -183,6 +189,18 @@ export default function VirtualTable({ dataset, rows }: Props) {
                 className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-muted cursor-pointer hover:text-fg hover:bg-stroke/20 select-none transition-colors"
               >
                 <span className="truncate">{h}</span>
+                {colRoleMap[h] === "metric" && (
+                  <span className="text-[9px] bg-accent/10 text-accent border border-accent/20 px-1 rounded shrink-0 font-semibold">M</span>
+                )}
+                {colRoleMap[h] === "dimension" && (
+                  <span className="text-[9px] bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 px-1 rounded shrink-0 font-semibold">D</span>
+                )}
+                {colRoleMap[h] === "identifier" && (
+                  <span className="text-[9px] bg-muted/10 text-muted border border-stroke px-1 rounded shrink-0 font-semibold">ID</span>
+                )}
+                {colRoleMap[h] === "date" && (
+                  <span className="text-[9px] bg-cyan-400/10 text-cyan-400 border border-cyan-400/20 px-1 rounded shrink-0 font-semibold">D8</span>
+                )}
                 {isActive ? (
                   sort.direction === "asc" ? (
                     <ArrowUp className="w-3 h-3 text-accent shrink-0" />

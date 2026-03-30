@@ -1,8 +1,18 @@
 export type ColumnType = "numeric" | "categorical" | "date" | "unknown";
 
+/**
+ * Semantic role of a column in the dataset.
+ * - metric:     a meaningful measure (sales, profit, quantity)
+ * - dimension:  a grouping attribute (region, category, segment)
+ * - identifier: a row ID, postal code, phone — excluded from charts/KPIs
+ * - date:       a temporal value
+ */
+export type ColumnRole = "metric" | "dimension" | "identifier" | "date";
+
 export interface ColumnMeta {
   name: string;
   type: ColumnType;
+  role: ColumnRole;
   nullCount: number;
   uniqueCount: number;
   min?: number;
@@ -41,13 +51,14 @@ export interface ChartSpec {
 }
 
 export interface AIAnalysis {
+  text?: string;            // primary conversational response
   insights: string[];
   sqlQueries: { label: string; query: string }[];
   chartSuggestions: string[];
 }
 
 export interface FilterState {
-  categorical: Record<string, string[]>; // multi-select: col -> selected values[]
+  categorical: Record<string, string[]>;
   numeric: Record<string, [number, number]>;
 }
 
