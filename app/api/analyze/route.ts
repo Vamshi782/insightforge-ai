@@ -1,7 +1,24 @@
 import { buildSchema } from "@/lib/visualizer";
 import { Dataset, ChatMessage } from "@/lib/types";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: Request) {
+  // ── Rate limiting ────────────────────────────────────────────────────────────
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown";
+
+  const limit = checkRateLimit(ip);
+  if (!limit.allowed) {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (limit.retryAfter) headers["Retry-After"] = String(limit.retryAfter);
+    return new Response(JSON.stringify({ error: limit.reason }), {
+      status: 429,
+      headers,
+    });
+  }
+  // ────────────────────────────────────────────────────────────────────────────
   let body: {
     datasets: Dataset[];
     question?: string;
