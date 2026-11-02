@@ -108,7 +108,7 @@ function SecondaryBtn({
 
 // ─── Social proof avatars ──────────────────────────────────────────────────────
 
-const AVATAR_COLORS = ["#6366f1", "#10b981", "#f59e0b"];
+const AVATAR_COLORS = ["#4f46e5", "#047857", "#b45309"];
 const AVATAR_INITIALS = ["A", "B", "C"];
 
 function SocialProof() {
@@ -118,7 +118,7 @@ function SocialProof() {
         {AVATAR_COLORS.map((color, i) => (
           <div
             key={i}
-            className="w-8 h-8 rounded-full border-2 border-white/80 flex items-center justify-center text-white text-xs font-bold shadow-sm"
+            className="w-8 h-8 rounded-full border-2 border-surface flex items-center justify-center text-white text-xs font-bold shadow-sm"
             style={{ background: color, zIndex: 3 - i }}
           >
             {AVATAR_INITIALS[i]}
@@ -131,8 +131,8 @@ function SocialProof() {
             <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
           ))}
         </div>
-        <p className="text-xs text-white/80 font-medium">
-          Trusted by <span className="text-white font-bold">210k+</span> data professionals
+        <p className="text-xs text-muted font-medium">
+          Trusted by <span className="text-fg font-bold">210k+</span> data professionals
         </p>
       </div>
     </div>
@@ -146,29 +146,29 @@ const FEATURES = [
     icon: Sparkles,
     title: "Auto Data Cleaning",
     desc: "Nulls, types, encoding — all fixed automatically before your first chart loads.",
-    color: "text-violet-400",
-    bg: "bg-violet-400/10 border-violet-400/20",
+    color: "text-violet-600 dark:text-violet-400",
+    bg: "bg-violet-500/10 border-violet-500/20",
   },
   {
     icon: TrendingUp,
     title: "AI Insights",
     desc: "Ask plain-English questions and get direct, data-backed answers instantly.",
-    color: "text-amber-400",
-    bg: "bg-amber-400/10 border-amber-400/20",
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
   },
   {
     icon: BarChart2,
     title: "Instant Charts",
     desc: "Line, bar, pie, scatter — generated and explained automatically from your data.",
-    color: "text-cyan-400",
-    bg: "bg-cyan-400/10 border-cyan-400/20",
+    color: "text-cyan-700 dark:text-cyan-400",
+    bg: "bg-cyan-500/10 border-cyan-500/20",
   },
   {
     icon: Database,
     title: "Multi-Dataset Join",
     desc: "Upload two files, detect common columns, and merge with one click.",
-    color: "text-emerald-400",
-    bg: "bg-emerald-400/10 border-emerald-400/20",
+    color: "text-emerald-700 dark:text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
   },
   {
     icon: Table2,
@@ -181,8 +181,8 @@ const FEATURES = [
     icon: Filter,
     title: "KPI Detection",
     desc: "Smart role detection separates real metrics from IDs, so KPIs are always meaningful.",
-    color: "text-rose-400",
-    bg: "bg-rose-400/10 border-rose-400/20",
+    color: "text-rose-600 dark:text-rose-400",
+    bg: "bg-rose-500/10 border-rose-500/20",
   },
 ];
 
@@ -194,21 +194,21 @@ const REVIEWS = [
     role: "Data Analyst @ Stripe",
     text: "InsightForge cut my reporting time by 70%. I upload a CSV and the dashboard is ready in seconds.",
     rating: 5,
-    color: "#6366f1",
+    color: "#4f46e5",
   },
   {
     name: "Marcus T.",
     role: "Business Intelligence Lead",
     text: "The AI chat is genuinely useful. It understands my data context and gives specific, accurate answers.",
     rating: 5,
-    color: "#10b981",
+    color: "#047857",
   },
   {
     name: "Priya M.",
     role: "Product Manager @ Scale",
     text: "I sent this to our entire ops team. No more waiting for the data team to build reports.",
     rating: 5,
-    color: "#f59e0b",
+    color: "#b45309",
   },
 ];
 
@@ -237,7 +237,7 @@ function OnboardingSteps({ step }: { step: number }) {
             >
               <div
                 className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold ${
-                  done   ? "bg-success text-white"
+                  done   ? "bg-success text-bg"
                   : active ? "bg-accent text-accent-fg"
                   : "bg-surface2 text-muted border border-stroke"
                 }`}
@@ -466,11 +466,11 @@ export default function Home() {
               <BackgroundVideo />
 
               {/* ── Hero ──────────────────────────────────────────────────── */}
-              <section className="relative min-h-[92vh] flex flex-col items-center justify-center text-center px-4 pt-10 pb-24">
+              <section className="hero-glow relative min-h-[92vh] flex flex-col items-center justify-center text-center px-4 pt-10 pb-24">
                 {/* Badge */}
                 <motion.div
                   variants={fadeUp} initial="hidden" animate="visible" custom={0}
-                  className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full mb-6"
+                  className="inline-flex items-center gap-1.5 bg-accent/10 border border-accent/25 text-accent text-xs font-semibold px-3 py-1.5 rounded-full mb-6"
                 >
                   <Sparkles className="w-3 h-3" />
                   Powered by Gemini AI
@@ -479,7 +479,7 @@ export default function Home() {
                 {/* Headline */}
                 <motion.h1
                   variants={fadeUp} initial="hidden" animate="visible" custom={0.08}
-                  className="font-switzer text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-[1.06] tracking-[-0.03em] mb-5 max-w-4xl"
+                  className="font-switzer text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-fg leading-[1.06] tracking-[-0.03em] mb-5 max-w-4xl"
                 >
                   Manage your data workflows
                   <br />
@@ -490,7 +490,7 @@ export default function Home() {
                 {/* Subhead */}
                 <motion.p
                   variants={fadeUp} initial="hidden" animate="visible" custom={0.16}
-                  className="text-base sm:text-lg text-white/75 max-w-xl mx-auto mb-10 leading-relaxed"
+                  className="text-base sm:text-lg text-muted max-w-xl mx-auto mb-10 leading-relaxed"
                 >
                   InsightForge turns messy datasets into clean, actionable dashboards
                   instantly — no code, no sign-up required.
@@ -545,10 +545,10 @@ export default function Home() {
                 id="upload"
               >
                 <div className="text-center mb-8">
-                  <h2 className="font-switzer text-2xl font-bold text-white mb-2 tracking-tight">
+                  <h2 className="font-switzer text-2xl font-bold text-fg mb-2 tracking-tight">
                     Try it now — upload any CSV or Excel
                   </h2>
-                  <p className="text-white/60 text-sm">No sign-up. Processed entirely in your browser.</p>
+                  <p className="text-muted text-sm">No sign-up. Processed entirely in your browser.</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FileUpload
@@ -584,10 +584,10 @@ export default function Home() {
               {/* ── Features section ──────────────────────────────────────── */}
               <section id="features" className="relative max-w-7xl mx-auto px-4 pb-20">
                 <div className="text-center mb-10">
-                  <p className="text-xs font-semibold text-white/50 uppercase tracking-widest mb-3">
+                  <p className="text-xs font-semibold text-accent uppercase tracking-widest mb-3">
                     Everything you need
                   </p>
-                  <h2 className="font-switzer text-3xl font-bold text-white tracking-tight">
+                  <h2 className="font-switzer text-3xl font-bold text-fg tracking-tight">
                     Your complete data analysis platform
                   </h2>
                 </div>
@@ -599,15 +599,15 @@ export default function Home() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.45, delay: i * 0.07, ease: [0.16, 1, 0.3, 1] }}
-                      className={`bg-white/8 backdrop-blur-sm border rounded-xl p-4 hover:bg-white/12 hover:scale-[1.02] transition-all duration-200 group ${f.bg}`}
+                      className="bg-surface border border-stroke rounded-xl p-4 shadow-sm hover:border-accent/30 hover:shadow-md hover:scale-[1.02] transition-all duration-200 group"
                     >
                       <div
                         className={`w-9 h-9 ${f.bg} border rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}
                       >
                         <f.icon className={`w-4.5 h-4.5 ${f.color}`} />
                       </div>
-                      <p className="text-sm font-semibold text-white mb-1">{f.title}</p>
-                      <p className="text-xs text-white/60 leading-relaxed">{f.desc}</p>
+                      <p className="text-sm font-semibold text-fg mb-1">{f.title}</p>
+                      <p className="text-xs text-muted leading-relaxed">{f.desc}</p>
                     </motion.div>
                   ))}
                 </div>
@@ -615,7 +615,7 @@ export default function Home() {
 
               {/* ── Trust chips ───────────────────────────────────────────── */}
               <section className="relative max-w-7xl mx-auto px-4 pb-12">
-                <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/60">
+                <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted">
                   {[
                     "CSV & XLSX",
                     "100k+ rows",
@@ -625,7 +625,7 @@ export default function Home() {
                     "No sign-up",
                   ].map((f) => (
                     <div key={f} className="flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-success shrink-0" />
                       {f}
                     </div>
                   ))}
@@ -635,10 +635,10 @@ export default function Home() {
               {/* ── Reviews section ───────────────────────────────────────── */}
               <section id="reviews" className="relative max-w-7xl mx-auto px-4 pb-20">
                 <div className="text-center mb-10">
-                  <h2 className="font-switzer text-3xl font-bold text-white tracking-tight mb-2">
+                  <h2 className="font-switzer text-3xl font-bold text-fg tracking-tight mb-2">
                     Loved by data professionals
                   </h2>
-                  <p className="text-white/60 text-sm">Join 210k+ analysts saving hours every week</p>
+                  <p className="text-muted text-sm">Join 210k+ analysts saving hours every week</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {REVIEWS.map((r, i) => (
@@ -648,14 +648,14 @@ export default function Home() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                      className="bg-white/8 backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/12 transition-colors"
+                      className="bg-surface border border-stroke rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-center gap-0.5 mb-3">
                         {[...Array(r.rating)].map((_, j) => (
                           <Star key={j} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                         ))}
                       </div>
-                      <p className="text-sm text-white/85 leading-relaxed mb-4">&ldquo;{r.text}&rdquo;</p>
+                      <p className="text-sm text-fg leading-relaxed mb-4">&ldquo;{r.text}&rdquo;</p>
                       <div className="flex items-center gap-2.5">
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
@@ -664,8 +664,8 @@ export default function Home() {
                           {r.name[0]}
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-white">{r.name}</p>
-                          <p className="text-[10px] text-white/50">{r.role}</p>
+                          <p className="text-xs font-semibold text-fg">{r.name}</p>
+                          <p className="text-[11px] text-muted">{r.role}</p>
                         </div>
                       </div>
                     </motion.div>
@@ -675,10 +675,10 @@ export default function Home() {
 
               {/* ── Final CTA ─────────────────────────────────────────────── */}
               <section className="relative max-w-3xl mx-auto px-4 pb-24 text-center">
-                <h2 className="font-switzer text-3xl sm:text-4xl font-bold text-white tracking-tight mb-4">
+                <h2 className="font-switzer text-3xl sm:text-4xl font-bold text-fg tracking-tight mb-4">
                   Start analysing your data today
                 </h2>
-                <p className="text-white/60 mb-8">
+                <p className="text-muted mb-8">
                   Free forever · No sign-up · Runs in your browser
                 </p>
                 <PrimaryBtn

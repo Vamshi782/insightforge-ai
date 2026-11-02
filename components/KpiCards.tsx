@@ -50,7 +50,7 @@ interface Props {
 
 const ACCENT_BORDER = ["border-accent/30",      "border-emerald-400/30", "border-amber-400/30",  "border-cyan-400/30"];
 const ACCENT_BG     = ["bg-accent/8",            "bg-emerald-400/8",      "bg-amber-400/8",       "bg-cyan-400/8"];
-const ACCENT_TEXT   = ["text-accent",            "text-emerald-400",      "text-amber-400",       "text-cyan-400"];
+const ACCENT_TEXT   = ["text-accent", "text-emerald-700 dark:text-emerald-400", "text-amber-700 dark:text-amber-400", "text-cyan-700 dark:text-cyan-400"];
 const ACCENT_ICON   = ["bg-accent/15",           "bg-emerald-400/15",     "bg-amber-400/15",      "bg-cyan-400/15"];
 
 export default function KpiCards({ cards }: Props) {

@@ -170,15 +170,20 @@ function ChartBody({ chart, type }: { chart: ChartSpec; type: ChartType }) {
           <Pie
             data={chart.data} dataKey="value" nameKey="name"
             cx="50%" cy="50%" outerRadius="65%"
-            label={({ name, percent }: PieLabelRenderProps) =>
-              `${String(name ?? "").slice(0, 10)} ${((Number(percent) || 0) * 100).toFixed(0)}%`
-            }
+            label={({ name, percent, x, y, textAnchor }: PieLabelRenderProps) => (
+              <text x={x} y={y} textAnchor={textAnchor} dominantBaseline="central" fill="var(--fg)" fontSize={11}>
+                {`${String(name ?? "").slice(0, 10)} ${((Number(percent) || 0) * 100).toFixed(0)}%`}
+              </text>
+            )}
             labelLine={false}
           >
             {chart.data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
           </Pie>
           <Tooltip contentStyle={tooltipStyle} />
-          <Legend wrapperStyle={{ fontSize: 11, color: "var(--muted)" }} />
+          <Legend
+            wrapperStyle={{ fontSize: 11 }}
+            formatter={(value) => <span style={{ color: "var(--muted)" }}>{value}</span>}
+          />
         </PieChart>
       </ResponsiveContainer>
     );

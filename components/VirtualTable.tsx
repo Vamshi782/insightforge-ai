@@ -193,13 +193,13 @@ export default function VirtualTable({ dataset, rows }: Props) {
                   <span className="text-[9px] bg-accent/10 text-accent border border-accent/20 px-1 rounded shrink-0 font-semibold">M</span>
                 )}
                 {colRoleMap[h] === "dimension" && (
-                  <span className="text-[9px] bg-emerald-400/10 text-emerald-400 border border-emerald-400/20 px-1 rounded shrink-0 font-semibold">D</span>
+                  <span className="text-[9px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 px-1 rounded shrink-0 font-semibold">D</span>
                 )}
                 {colRoleMap[h] === "identifier" && (
                   <span className="text-[9px] bg-muted/10 text-muted border border-stroke px-1 rounded shrink-0 font-semibold">ID</span>
                 )}
                 {colRoleMap[h] === "date" && (
-                  <span className="text-[9px] bg-cyan-400/10 text-cyan-400 border border-cyan-400/20 px-1 rounded shrink-0 font-semibold">D8</span>
+                  <span className="text-[9px] bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/20 px-1 rounded shrink-0 font-semibold">D8</span>
                 )}
                 {isActive ? (
                   sort.direction === "asc" ? (

@@ -21,7 +21,7 @@ export default function Footer() {
           </div>
           <div className="flex items-center gap-2">
             <Link
-              href="https://linkedin.com/in/vamshi-krishna-korutla"
+              href="https://linkedin.com/in/vamshi-korutla"
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-colors border border-stroke rounded-lg px-2.5 py-1.5 hover:border-accent"
             >
@@ -29,7 +29,7 @@ export default function Footer() {
               LinkedIn
             </Link>
             <Link
-              href="https://github.com/Vamushi782/insightforge-ai"
+              href="https://github.com/Vamshi782/insightforge-ai"
               target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs text-muted hover:text-accent transition-colors border border-stroke rounded-lg px-2.5 py-1.5 hover:border-accent"
             >
@@ -40,7 +40,7 @@ export default function Footer() {
         </div>
         {/* Bottom row */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 text-xs text-muted">
-          <p>© {new Date().getFullYear()} InsightForge AI · Built by <span className="font-semibold text-fg">Vamushi Krishna Korutla</span></p>
+          <p>© {new Date().getFullYear()} InsightForge AI · Built by <span className="font-semibold text-fg">Vamshi Krishna Korutla</span></p>
           <p>All data processed in your browser · No sign-up required</p>
         </div>
       </div>
